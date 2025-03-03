@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
         char *ptr = buffer;
         char *ptr2 = buffer;
         int i = 0;
-        char *arg[3];
+        char *arg[4];
 
         while (*ptr != '\n')
         {
@@ -28,7 +28,6 @@ int main(int argc, char *argv[])
                 arg[i] = ptr2;
                 i++;
                 ptr2 = ptr + 1;
-                break;
             }
             ptr++;
         }
@@ -37,24 +36,51 @@ int main(int argc, char *argv[])
         arg[i + 1] = NULL;
 
         printf("Program name: %s\nParamater name: %s\n", arg[0], arg[1]);
+        // printf("%s\n", arg[2]);
+
+        int counter = 0;
+
+        for (char **i = arg; *i != NULL; i++)
+        {
+            printf("Counter: %d\n", counter);
+            counter++;
+        }
+
+        printf("Counter outside loop: %d", counter);
+
+        if (counter == 1)
+        {
+            printf("Getting ready to execute Program name: %s\n", arg[0]);
+        }
+
+        else if (counter == 2)
+        {
+            printf("Getting ready to execute Program name %s, with Parameter: %s\n", arg[0], arg[1]);
+        }
+
+        else if (counter == 3)
+        {
+            printf("Getting ready to execute Program name %s, with parameters %s and %s\n", arg[0], arg[1], arg[2]);
+        }
+
+        else if (counter == 4)
+        {
+            printf("Getting ready to execute Program name %s, with parameters %s and %s and %s\n", arg[0], arg[1], arg[2], arg[3]);
+        }
+
+        else
+        {
+            printf("Somethings broken\n");
+        }
 
         // NOW WE CAN CALL FORK AND DO THE REST!
 
-        //     int pidd = fork();
+        // int pidd = fork();
 
-        //     if (pidd == 0)
-        //     { // if its the child?
+        // if (pidd == 0){ // if its the child
 
-        //         printf("Program name: %s\n", buffer);
-        //         char *arg[] = {buffer, NULL}; // Sets up the vector array?
+        //     int size = sizeof(arg);
 
-        //         execv(buffer, arg);
-        //         printf("If I'm still here then there is a problem!\n");
-        //         exit(1); // Terminates the CURRENT child - not the entire program
-        //     }
-        //     else
-        //     {
-        //         wait(0);
-        //     }
+        // }
     }
 }
