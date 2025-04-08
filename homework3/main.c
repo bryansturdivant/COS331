@@ -9,9 +9,12 @@
 
 int random_array[1024][1024];
 int total_random[256];
+char *sems[256][10];
+
 int total = 0;
 char *semname = "sema"; //!!!This was in main, maybe put it back if this doesn't work!!!
-sem_t *my_sem;
+sem_t *my_sem;          // declaring my_sem semaphore
+sem_t *my_sems[256];    // declaring my_sems[256] for an array of semaphores
 
 typedef struct
 {
@@ -28,7 +31,7 @@ void *thread_func1(void *arg)
     // int chunk = 1024/partition->threads;
     int start = partition->start;
     int end = partition->end;
-    int my_array[256];
+    int my_array[256] = {0};
     int id = partition->id;
     // pthread_t tid = pthread_self();
 
@@ -46,7 +49,7 @@ void *thread_func1(void *arg)
     {
         total_random[i] += my_array[i];
     }
-    printf("Work done by thread #: %d\nTotal so far is: %d\n", id, total);
+    printf("From Func1: Work done by thread #: %d\nTotal so far is: %d\n", id, total);
 
     return NULL;
 }
@@ -58,7 +61,7 @@ void *thread_func2(void *arg)
     // int chunk = 1024/partition->threads;
     int start = partition->start;
     int end = partition->end;
-    int my_array[256];
+    int my_array[256] = {0};
     int id = partition->id;
     // pthread_t tid = pthread_self();
 
@@ -76,10 +79,44 @@ void *thread_func2(void *arg)
     {
         total_random[i] += my_array[i];
     }
-    printf("Work done by thread #: %d\nTotal so far: %d\n", id, total);
+    printf("From func2: Work done by thread #: %d\nTotal so far: %d\n", id, total);
 
     sem_post(my_sem);
 
+    return NULL;
+}
+
+void *thread_func3(void *arg)
+{
+
+    // sem_wait(my_sems[i]); //
+    partition_info *partition = (partition_info *)arg;
+    // int chunk = 1024/partition->threads;
+    int start = partition->start;
+    int end = partition->end;
+    int my_array[256] = {0};
+    int id = partition->id;
+    // pthread_t tid = pthread_self();
+
+    for (int i = start; i < end; i++)
+    {
+        for (int j = 0; j < 1024; j++)
+        {
+            int num = random_array[i][j];
+            my_array[num] += 1;
+            total += 1;
+            // printf("Total numbers from total with 1 Semaphore: %d\n", total);
+        }
+    }
+    for (int i = 0; i < 256; i++)
+    {
+        sem_wait(my_sems[i]);
+        total_random[i] += my_array[i];
+        sem_post(my_sems[i]);
+    }
+    printf("From func3: Work done by thread #: %d\nTotal so far: %d\n", id, total);
+
+    // sem_post(my_sems[i]);
     return NULL;
 }
 
@@ -92,6 +129,12 @@ int main(int argc, char *argv[])
     my_sem = sem_open(semname, O_CREAT, 777, 1); // single semaphore - might want change this?
     pthread_t tids[num_threads];
     partition_info partitions[num_threads];
+
+    for (int i = 0; i < 256; i++)
+    { // instantiate my array of semaphores
+        sprintf(sems[i], "S%d", i);
+        my_sems[i] = sem_open(sems[i], O_CREAT, 777, 1);
+    }
 
     for (int i = 0; i < 1024; i++)
     { // filling out random_array with random integers from 0 to 256
@@ -131,8 +174,29 @@ int main(int argc, char *argv[])
     {
         pthread_join(tids[i], NULL);
     }
-    sem_close(my_sem);
+    total = 0; // reset total for the next thread function
+
+    sem_close(my_sem); // Closing and unlinking single semaphore
     sem_unlink(semname);
+    for (int i = 0; i < num_threads; i++) // Creating threads for third function - 256 semaphores
+    {                                     // Creating threads
+        partitions[i].id = i;
+        partitions[i].start = (i * chunk);
+        partitions[i].end = partitions[i].start + chunk;
+        printf("Third function Thread has id: %d with a start: %d and end: %d\n", partitions[i].id, partitions[i].start, partitions[i].end);
+        pthread_create(&tids[i], NULL, thread_func3, &partitions[i]);
+    }
+
+    for (int i = 0; i < num_threads; i++) // Joining threads for third function
+    {
+        pthread_join(tids[i], NULL);
+    }
+
+    for (int i = 0; i < 256; i++)
+    { // closing and unlinking my array of semaphores
+        sem_close(my_sems[i]);
+        sem_unlink(sems[i]);
+    }
 
     // for (int x = 0; x < 10; x++){
     //     for(int y = 0; y < 10; y++){
